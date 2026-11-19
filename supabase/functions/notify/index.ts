@@ -21,6 +21,18 @@ function compose(event: string, data: any, store: string): string | null {
     return `${head}⚠️ สินค้าใกล้หมด/หมดสต็อก ${items.length} รายการ\n` +
       items.map((i: any) => `• ${s(i.name)} — เหลือ ${s(i.stock, 12)} ${s(i.unit, 12)} (ขั้นต่ำ ${s(i.min, 12)})`).join("\n");
   }
+  if (event === "HEALTH_ALERT") {
+    const neg = Array.isArray(data?.neg) ? data.neg.slice(0, 15) : [];
+    const n = (k: string) => Number(data?.[k]) || 0;
+    const lines: string[] = [];
+    if (n("negCount") > 0) lines.push(`• สต็อกติดลบ ${n("negCount")} รายการ:\n` + neg.map((x: unknown) => `   - ${s(x, 70)}`).join("\n"));
+    if (n("stuck") > 0) lines.push(`• รายการซิงก์ล้มเหลว/รอตรวจ ${n("stuck")} รายการ`);
+    if (n("old") > 0) lines.push(`• รายการค้างซิงก์เกิน 6 ชั่วโมง ${n("old")} รายการ`);
+    if (n("zero") > 0) lines.push(`• สินค้าราคา 0 บาท ${n("zero")} รายการ`);
+    if (n("below") > 0) lines.push(`• ขายต่ำกว่าทุน/ตัวคูณผิด ${n("below")} รายการ`);
+    if (!lines.length) return null;
+    return `${head}🩺 ตรวจสุขภาพข้อมูลประจำวัน พบปัญหา\n` + lines.join("\n");
+  }
   if (event === "DAILY_SUMMARY") {
     const m = data?.methods && typeof data.methods === "object" ? Object.entries(data.methods).slice(0, 10) : [];
     return `${head}📊 สรุปยอดขาย ${s(data?.date, 20)}\nจำนวนบิล: ${Number(data?.count) || 0}\nยอดรวม: ฿${money(data?.total)}` +

@@ -307,7 +307,9 @@
         }
         {
           const realFiles = files.filter(f => f.id); // list() คืนโฟลเดอร์มาด้วยถ้ามี ต้องกรองเอาเฉพาะไฟล์จริง
-          const usedUrls = new Set(products.map(p => p.imageUrl).filter(Boolean));
+          // รวมรูปของ "ขนาด/ตัวเลือก" (variant) ด้วย — เดิมนับเฉพาะรูประดับสินค้า ทำให้รูปที่ใช้งานอยู่ถูกรายงานเป็นรูปไม่มีเจ้าของ
+          const usedUrls = new Set();
+          products.forEach(p => { if (p.imageUrl) usedUrls.add(p.imageUrl); (p.variants || []).forEach(v => { if (v.imageUrl) usedUrls.add(v.imageUrl); }); });
           const orphanFiles = realFiles.filter(f => {
             const { data } = client.storage.from('product-images').getPublicUrl(f.name);
             return !usedUrls.has(data.publicUrl);

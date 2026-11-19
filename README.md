@@ -16,9 +16,9 @@ npm run build:single   # ได้ dist-single/index.html ไฟล์เดี�
 ## โครงสร้าง
 ```
 index.html              โครงหน้า (markup) + ลำดับการโหลดไฟล์ — ไม่มี script/style inline แล้ว
-public/js/NN-*.js       โค้ดระบบ 30 ไฟล์ (โหลดตามเลขลำดับ — ห้ามสลับลำดับ)
+public/js/NN-*.js       โค้ดระบบ 31 ไฟล์ (โหลดตามเลขลำดับ — ห้ามสลับลำดับ)
 public/sw.js            service worker (ตอน build จะเติมรายชื่อไฟล์ + เลขเวอร์ชันให้เอง)
-src/styles/NN-*.css     สไตล์ 8 ไฟล์ (Vite รวม/ย่อให้ตอน build)
+src/styles/NN-*.css     สไตล์ 9 ไฟล์ (09-addons = คลาสเสริมของโมดูลใหม่ — CSS หลักเป็นแบบเขียนมือ ถ้าใช้คลาส Tailwind ใหม่ต้องเพิ่มกฎเองที่นี่) (Vite รวม/ย่อให้ตอน build)
 sql/                    SQL ฐานข้อมูลรวมทุกแพตช์ (รันใน Supabase SQL Editor)
 supabase/functions/notify   Edge Function แจ้งเตือน Telegram/LINE
 tools/                  check.mjs (ตรวจโครงสร้าง) / inline.mjs (รวมเป็นไฟล์เดียว)
@@ -53,6 +53,7 @@ tools/                  check.mjs (ตรวจโครงสร้าง) / in
 | 27-keyboard-shortcuts | คีย์ลัด F2/F4/F8/Esc |
 | 28-cut-pipe | ตัดท่อเป็นเมตร + เศษ (ต้องรัน SQL PATCH 015) |
 | 29-printer-notify-stocktake | เครื่องพิมพ์ ESC/POS, แจ้งเตือน, ใบตรวจนับ (F9) |
+| 30-health-fixer | ตัวช่วยแก้ปัญหาข้อมูล (ราคา 0, ขายต่ำกว่าทุน, ข้อมูลซ้ำ, ลบรูปอย่างปลอดภัย) — ย้อนกลับได้ |
 
 ## ข้อควรรู้ (อ่านก่อนแก้โครงสร้างต่อ)
 - สคริปต์ทั้งหมดเป็น **classic script** ไม่ใช่ ES module โดยตั้งใจ: โค้ดเดิมใช้ตัวแปรระดับบนสุด (เช่น `const roundAmt` ใน 03-core-app) และ `window.*` ร่วมกัน ถ้าเปลี่ยนเป็น `type="module"` ทันทีระบบจะพัง การย้ายเป็น module ต้องทำทีละไฟล์: เริ่มจากไฟล์เล็กที่ไม่มีใครอ้างตัวแปรของมัน (เช่น 19, 21, 27) แล้วเปลี่ยนตัวแปรที่ใช้ร่วมกันให้เป็น `import/export`
