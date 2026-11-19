@@ -1,0 +1,20 @@
+{
+  "name": "smart-pos",
+  "version": "13.4.0",
+  "private": true,
+  "type": "module",
+  "description": "SMART-POS — ระบบ POS หน้าร้านแบบออฟไลน์ + Supabase",
+  "scripts": {
+    "dev": "vite",
+    "check": "node tools/check.mjs",
+    "build": "node tools/check.mjs && vite build",
+    "preview": "vite preview",
+    "build:single": "node tools/inline.mjs"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

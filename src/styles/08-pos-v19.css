@@ -1,0 +1,18 @@
+
+  /* ปุ่มสัมผัสขนาดใหญ่ */
+  html.pos-touch-big button, html.pos-touch-big .btn-touch { min-height: 48px; }
+  html.pos-touch-big nav button, html.pos-touch-big .bottom-nav button { min-height: 56px; }
+  /* ธีมพื้นหลัง */
+  html.pos-bg-cream body { background: #fdf6e3 !important; }
+  html.pos-bg-sky body   { background: linear-gradient(180deg,#e0f2fe,#f8fafc) !important; }
+  html.pos-bg-mint body  { background: linear-gradient(180deg,#dcfce7,#f8fafc) !important; }
+  html.pos-bg-slate body { background: linear-gradient(180deg,#1e293b,#334155) !important; color: #f8fafc; }
+  /* ขนาดตัวอักษร */
+  html.pos-font-lg { font-size: 112%; }
+  html.pos-font-xl { font-size: 125%; }
+  #pos-settings-modal { display:none; position:fixed; inset:0; z-index:9997; background:rgba(15,23,42,.55); padding:12px; overflow:auto; }
+  #pos-settings-modal .pos-card { max-width:560px; margin:16px auto; background:#fff; color:#0f172a; border-radius:18px; padding:16px; font-family:Sarabun,sans-serif; }
+  #pos-settings-modal .row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #e2e8f0; }
+  #pos-settings-modal select, #pos-settings-modal input[type=range] { min-height:40px; }
+  #pos-settings-modal .seg button { padding:10px 12px; border:1px solid #cbd5e1; background:#fff; border-radius:10px; font-weight:700; margin-left:4px; }
+  #pos-settings-modal .seg button.on { background:#4f46e5; color:#fff; border-color:#4f46e5; }

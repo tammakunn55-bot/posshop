@@ -1,0 +1,26 @@
+
+/* 1) ผู้ใช้ที่ตั้งค่า "ลดการเคลื่อนไหว" ใน iPadOS จะไม่เห็นอนิเมชันที่หมุนหรือกระพือ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+/* 2) กดปุ่มแล้วยุบเล็กน้อย ให้รู้สึกว่าโดน (ปุ่มที่ไม่ใช่ปิด/ยกเลิก) */
+button:not(:disabled) { transition: transform .08s ease-out; -webkit-tap-highlight-color: transparent; }
+button:not(:disabled):active { transform: scale(.96); }
+
+/* 3) ภาพยืนยันขายสำเร็จ: วงกลมเขียว + เครื่องหมายถูกวาดเอง */
+#pos-success { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; pointer-events: none; background: rgba(15,23,42,0); transition: background .25s ease; }
+#pos-success.show { background: rgba(15,23,42,.18); }
+#pos-success .card { background: #fff; border-radius: 22px; padding: 22px 26px; text-align: center; box-shadow: 0 18px 40px rgba(15,23,42,.25); transform: scale(.85); opacity: 0; transition: transform .35s cubic-bezier(.2,1.4,.4,1), opacity .25s ease; min-width: 220px; font-family: Sarabun, sans-serif; color: #0f172a; }
+#pos-success.show .card { transform: scale(1); opacity: 1; }
+#pos-success svg { width: 84px; height: 84px; }
+#pos-success circle { fill: #10b981; }
+#pos-success path { fill: none; stroke: #fff; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 60; stroke-dashoffset: 60; }
+#pos-success.show path { animation: posCheck .45s .2s ease-out forwards; }
+@keyframes posCheck { to { stroke-dashoffset: 0; } }
+#pos-success .title { font-weight: 800; font-size: 18px; margin-top: 6px; }
+#pos-success .sub { font-size: 14px; color: #475569; margin-top: 2px; }
+#pos-success .big { font-size: 26px; font-weight: 900; color: #059669; font-variant-numeric: tabular-nums; margin-top: 4px; }
+
+/* 4) ตัวเลขนับขึ้นเมื่อยอดเปลี่ยน */
+.pos-count-flash { animation: posFlash .4s ease-out; }
+@keyframes posFlash { 0% { color: #4f46e5; transform: scale(1.08); } 100% { color: inherit; transform: none; } }
