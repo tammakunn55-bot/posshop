@@ -2363,16 +2363,45 @@ declare
   v_debt numeric; v_limit numeric; v_new_debt numeric; v_created timestamptz; v_shift_status text; v_n int;
 begin
   v_actor := public.pos_require_staff();
+
+  -- บังคับสิทธิ์การขายที่ฐานข้อมูล ไม่พึ่งการตรวจจากหน้าเว็บเพียงอย่างเดียว
+  if p_session is not null then
+    v_actor := public.pos_check_perm(p_session, 'SALE', 'STAFF');
+  elsif not exists (
+    select 1 from public.app_users u where u.id = v_actor and u.is_active
+      and (u.role = 'OWNER' or u.permissions ? 'ALL' or u.permissions ? 'SALE')
+  ) then
+    raise exception 'ไม่มีสิทธิ์: SALE' using errcode = '42501';
+  end if;
+
   if coalesce(trim(p_bill_number), '') = '' then raise exception 'ต้องระบุเลขบิล'; end if;
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items) = 0 then raise exception 'ไม่มีรายการสินค้า'; end if;
 
-  select id into v_user from public.app_users where id = p_user_id and is_active;
-  v_user := coalesce(v_user, v_actor);
+  -- ยึดผู้ทำรายการจาก session ที่ตรวจสอบแล้ว ไม่เชื่อ p_user_id จาก browser
+  v_user := v_actor;
 
   v_method := upper(trim(coalesce(p_payment_method, 'CASH')));
   v_method := case v_method when 'เงินสด' then 'CASH' when 'เครดิต' then 'CREDIT' when 'ON_CREDIT' then 'CREDIT'
                             when 'โอน' then 'TRANSFER' when 'โอนเงิน' then 'TRANSFER' else v_method end;
   v_is_credit := (v_method = 'CREDIT');
+
+  if coalesce(p_discount_amount, 0) > 0 then
+    if p_session is not null then
+      perform public.pos_check_perm(p_session, 'DISCOUNT', 'STAFF');
+    elsif not exists (select 1 from public.app_users u where u.id = v_actor and u.is_active
+      and (u.role = 'OWNER' or u.permissions ? 'ALL' or u.permissions ? 'DISCOUNT')) then
+      raise exception 'ไม่มีสิทธิ์: DISCOUNT' using errcode = '42501';
+    end if;
+  end if;
+
+  if v_is_credit then
+    if p_session is not null then
+      perform public.pos_check_perm(p_session, 'CREDIT_SALE', 'STAFF');
+    elsif not exists (select 1 from public.app_users u where u.id = v_actor and u.is_active
+      and (u.role = 'OWNER' or u.permissions ? 'ALL' or u.permissions ? 'CREDIT_SALE')) then
+      raise exception 'ไม่มีสิทธิ์: CREDIT_SALE' using errcode = '42501';
+    end if;
+  end if;
 
   -- กันบิลซ้ำ: เลขเดียวกัน + รายการเท่ากัน = ส่งซ้ำ; เลขเดียวกันแต่ต่างกัน = เลขบิลชนกัน (แจ้ง error ไม่ทิ้งเงียบ)
   select id, total into v_exist from public.bills where bill_number = p_bill_number;

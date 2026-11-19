@@ -3,3 +3,10 @@ dist
 dist-single
 *.log
 .DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
