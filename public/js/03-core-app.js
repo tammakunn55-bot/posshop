@@ -1749,7 +1749,12 @@ window.formatMoney = formatMoney;
           return alert("กรณีค้างชำระ จำเป็นต้องเลือกชื่อลูกค้าก่อนบันทึก");
         }
 
-        // ตรวจวงเงินฝั่งหน้าเว็บเพื่อแจ้งผู้ใช้ทันที; ฐานข้อมูลตรวจซ้ำใน create_sale และเป็นตัวตัดสินสุดท้าย
+        // Credit-limit check — this schema's create_sale RPC does not enforce credit_limit
+        // itself (it only carries the column), so this client-side check is the only
+        // enforcement there is; per the manual's "ตรวจสอบวงเงินเครดิต" description, previously
+        // this wasn't enforced client-side at all either, so bills could exceed a customer's
+        // credit_limit before the background sync
+        // ever reached Supabase).
         if (activePayMethod === 'CREDIT' && db.customers[cid]) {
           const limit = db.customers[cid].creditLimit ?? 50000;
           if (roundAmt(db.customers[cid].debt + total) > limit) {

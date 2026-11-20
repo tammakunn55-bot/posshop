@@ -65,11 +65,3 @@ tools/                  check.mjs (ตรวจโครงสร้าง) / in
 ## ฐานข้อมูล / Edge Function
 - `sql/SMART-POS-FULL-v13_4.sql` รันทั้งไฟล์ได้ซ้ำ (patch 003–015: ตรวจสิทธิ์คืนสินค้ารายบุคคล, ตัดท่อ/เศษ)
 - แจ้งเตือน: ดู `supabase/functions/notify/README.md`
-
-## หมายเหตุการอัปเดตความปลอดภัย (v13.4.1)
-
-- นำไฟล์ `sql/SMART-POS-FULL-v13_4.sql` ฉบับนี้ไปรันใน Supabase SQL Editor ก่อนเผยแพร่หน้าเว็บ
-- `create_sale` ตรวจสิทธิ์ `SALE`, `DISCOUNT` และ `CREDIT_SALE` ที่ฐานข้อมูลอีกชั้น
-- ผู้ทำรายการในบิลยึดจาก session ที่ผ่านการตรวจสอบ ไม่เชื่อ `p_user_id` ที่ส่งมาจาก browser
-- ห้ามนำ `.env`, service_role key หรือรหัสผ่านขึ้น GitHub
-- ทดสอบด้วยบัญชี OWNER และ CASHIER แยกกัน ทั้งกรณีขายปกติ ส่วนลด และขายเชื่อ

@@ -80,6 +80,15 @@
     };
   }
 
+  function scanDupVsku() {
+    const m = new Map();
+    prods().forEach(p => (p.variants || []).forEach(v => {
+      const k = String(v.sku || '').trim().toLowerCase(); if (!k) return;
+      if (!m.has(k)) m.set(k, []); m.get(k).push({ p, v, label: vlabel(p, v), stock: +v.stock || 0, price: +v.price || 0 });
+    }));
+    return [...m.entries()].filter(([, a]) => new Set(a.map(x => x.v.id)).size > 1).map(([, items]) => ({ sku: String(items[0].v.sku).trim(), items }));
+  }
+
   // ---------------- กรอบหน้าต่าง ----------------
   function frame() {
     let el = document.getElementById('hf-dlg');
@@ -103,13 +112,14 @@
 
   // ---------------- เมนู ----------------
   function menu() {
-    const z = scanZero().length, bl = scanBelow().length, d = scanDups(), dn = d.names.length + d.codes.length, last = loadLog().slice(-1)[0];
+    const z = scanZero().length, bl = scanBelow().length, d = scanDups(), dn = d.names.length + d.codes.length, vs = scanDupVsku().length, last = loadLog().slice(-1)[0];
     const item = (go, icon, t, desc, n) => `<button class="hf-menu" data-go="${go}"><span>${icon} ${t}<small>${desc}</small></span>${(go === 'orphan' || go === 'stock') ? '<span class="hf-badge">ตรวจเมื่อเปิด</span>' : `<span class="hf-badge ${n ? '' : 'ok'}">${n ? n + ' รายการ' : '✓ ไม่พบ'}</span>`}</button>`;
     screen('🛠️ ตัวช่วยแก้ปัญหาข้อมูล',
       `<p style="margin-bottom:10px">เลือกกลุ่มปัญหา ระบบจะอธิบาย ให้เลือกวิธีแก้ และแสดงตัวอย่างก่อนบันทึกทุกครั้ง ไม่แก้อะไรให้เองโดยไม่ถาม</p>
        ${item('zero', '💰', 'ราคาขายเป็น 0 บาท', 'ขายออกไปจะได้เงิน 0 บาท', z)}
        ${item('below', '📉', 'ขายต่ำกว่าทุน / ตัวคูณหน่วยแบ่งขายผิด', 'ขาดทุนทุกครั้งที่ขาย หรือหักสต็อกผิด', bl)}
        ${item('dups', '🧬', 'ชื่อ/ขนาดซ้ำ และบาร์โค้ดซ้ำ', 'ค้นหาสับสน สแกนบาร์โค้ดแล้วได้สินค้าผิดตัว', dn)}
+       ${item('vsku', '🏷️', 'SKU ของขนาดซ้ำกัน', 'นำเข้าไฟล์/ซิงก์อาจเขียนทับกัน', vs)}
        ${item('stock', '📦', 'สต็อกเครื่องนี้ไม่ตรงกับเซิร์ฟเวอร์', 'เกิดเมื่อใช้หลายเครื่อง/ออฟไลน์นาน (ต้องซิงก์ให้ครบก่อนตรวจ)', 0)}
        ${item('orphan', '🖼️', 'รูปบนเซิร์ฟเวอร์ที่ไม่มีเจ้าของ', 'ลบเพื่อประหยัดพื้นที่ (เทียบกับข้อมูลบนเซิร์ฟเวอร์ก่อน)', 0)}
        ${last ? `<div class="hf-group" style="margin-top:12px"><b>↩️ ย้อนกลับการแก้ล่าสุด</b><div class="sub" style="color:#64748b">${esc(last.label)} • ${last.ch.length} จุด • ${new Date(last.id).toLocaleString('th-TH')}</div><div class="hf-bar"><button class="hf-btn" id="hf-undo">ย้อนกลับชุดนี้</button></div></div>` : ''}`,
@@ -125,12 +135,13 @@
     if (!rows.length) return screen('💰 ราคาขายเป็น 0 บาท', '<div class="hf-note ok">✅ ไม่พบสินค้าที่ราคาขายเป็น 0 บาท</div><div class="hf-bar">' + backBtn + '</div>');
     const shown = rows.slice(0, 300);
     screen('💰 ราคาขายเป็น 0 บาท (' + rows.length + ' รายการ)',
-      `<div class="hf-note"><b>ปัญหา:</b> สินค้าเหล่านี้ขายได้แต่ราคา 0 บาท ถ้าขายไปจะไม่ได้เงิน<br><b>วิธีแก้ที่เลือกได้:</b> ① เติมราคาจากต้นทุน+กำไร% ② กรอกราคาเองทีละรายการ ③ ปิดการขายสินค้าที่ยังไม่มีราคา (เก็บข้อมูลไว้ เปิดกลับได้) ④ ข้ามไว้</div>
+      `<div class="hf-note"><b>ปัญหา:</b> สินค้าเหล่านี้ขายได้แต่ราคา 0 บาท ถ้าขายไปจะไม่ได้เงิน<br><b>วิธีแก้ที่เลือกได้:</b> ① เติมราคาจากต้นทุน+กำไร% ② กรอกราคาเองทีละรายการ ③ ปิดการขายสินค้าที่ยังไม่มีราคา (เก็บข้อมูลไว้) ④ ลบสินค้าที่ไม่ใช้แล้ว (เช่น ข้อมูลทดสอบ) ⑤ ข้ามไว้ — ทุกอย่างย้อนกลับได้</div>
        <div class="hf-bar"><label>กำไร <input id="hf-m" class="hf-in" style="width:64px" type="number" value="25"> %</label><label><input id="hf-r" type="checkbox" checked> ปัดขึ้นเป็นบาทเต็ม</label>
        <button class="hf-btn" id="hf-fill">เติมราคาจากทุน+กำไร (เฉพาะที่ติ๊ก)</button><button class="hf-btn" id="hf-all">เลือก/ยกเลิกทั้งหมด</button></div>
+       <div class="hf-bar"><label>ตั้งราคาเท่ากัน <input id="hf-same" class="hf-in" style="width:80px" type="number" inputmode="decimal"> บาท</label><button class="hf-btn" id="hf-fillsame">ใส่ราคานี้ให้ที่ติ๊ก</button></div>
        <div class="hf-list">${shown.map((r, i) => `<div class="hf-row"><input type="checkbox" class="hf-c" data-i="${i}" checked><div class="grow">${esc(r.label)}<div class="sub">${r.cost > 0 ? 'ทุน ฿' + fmt(r.cost) : 'ไม่มีราคาทุน (เติมอัตโนมัติไม่ได้)'}</div></div><input class="hf-in hf-p" data-i="${i}" type="number" inputmode="decimal" placeholder="ราคาขาย"></div>`).join('')}</div>
        ${rows.length > shown.length ? `<div class="sub" style="margin-top:6px">แสดง ${shown.length} รายการแรก แก้ชุดนี้แล้วเปิดใหม่เพื่อทำชุดถัดไป</div>` : ''}
-       <div class="hf-bar">${backBtn}<button class="hf-btn" id="hf-dis">ปิดการขายสินค้าที่ไม่มีราคา</button><button class="hf-btn pri" id="hf-save">บันทึกราคาที่กรอก</button></div>`,
+       <div class="hf-bar">${backBtn}<button class="hf-btn" id="hf-dis">ปิดการขาย</button><button class="hf-btn warn" id="hf-rm">ลบสินค้าที่ไม่มีราคา</button><button class="hf-btn pri" id="hf-save">บันทึกราคาที่กรอก</button></div>`,
       (b) => {
         const chk = () => [...b.querySelectorAll('.hf-c')], inp = (i) => b.querySelector(`.hf-p[data-i="${i}"]`);
         b.querySelector('#hf-all').onclick = () => allBox(b, '.hf-c');
@@ -138,6 +149,19 @@
           const m = +b.querySelector('#hf-m').value, up = b.querySelector('#hf-r').checked; let n = 0;
           chk().forEach(c => { const r = shown[+c.dataset.i]; if (c.checked && r.cost > 0) { inp(c.dataset.i).value = suggest(r.cost, m, up); n++; } });
           window.showToast?.(n ? `เติมราคาให้ ${n} รายการ — ตรวจแล้วกด "บันทึก"` : 'ไม่มีรายการที่ติ๊กและมีราคาทุน');
+        };
+        b.querySelector('#hf-fillsame').onclick = () => {
+          const val = +b.querySelector('#hf-same').value; if (!(val > 0)) return window.showAlert?.('ใส่ราคาก่อน', 'กรอกราคาที่ต้องการในช่อง "ตั้งราคาเท่ากัน"', true);
+          let n = 0; chk().forEach(c => { if (c.checked) { inp(c.dataset.i).value = val; n++; } }); window.showToast?.(`ใส่ราคา ฿${fmt(val)} ให้ ${n} รายการ — ตรวจแล้วกด "บันทึก"`);
+        };
+        b.querySelector('#hf-rm').onclick = () => {
+          const pick = new Map(); chk().forEach(c => { if (c.checked) pick.set(shown[+c.dataset.i].p.id, shown[+c.dataset.i].p); });
+          const targets = [...pick.values()].filter(p => (p.variants || []).every(v => !(+v.price > 0)));
+          if (!targets.length) return window.showAlert?.('ไม่มีสินค้าที่ลบได้', 'ลบได้เฉพาะสินค้าที่ "ทุกขนาด" ไม่มีราคา', true);
+          const withStock = targets.filter(p => (p.variants || []).some(v => (+v.stock || 0) !== 0)).length;
+          if (!confirm(`ลบ ${targets.length} สินค้า (ซ่อนจากทุกหน้าและซิงก์เป็นไม่ใช้งาน)?\n\n` + summary(targets.map(p => '• ' + p.name), targets.length) + (withStock ? `\n\n⚠️ ${withStock} สินค้ายังมีสต็อกไม่เป็นศูนย์` : '') + '\n\nย้อนกลับได้จากเมนูตัวช่วย (ประวัติการขายเดิมไม่ถูกลบ)')) return;
+          begin('ลบสินค้าที่ไม่มีราคา'); targets.forEach(p => set('p', { p: p.id }, p, 'isDeleted', true));
+          const n = commit(); window.showToast?.(`ลบ ${n} สินค้า`); zeroScreen();
         };
         b.querySelector('#hf-save').onclick = () => {
           const todo = []; chk().forEach(c => { const r = shown[+c.dataset.i], val = +inp(c.dataset.i).value; if (c.checked && val > 0) todo.push({ r, val }); });
@@ -227,6 +251,39 @@
           acts.forEach(a => { if (a.t === 'rename') set('p', { p: a.it.p.id }, a.it.p, 'name', a.it.p.name + ' (' + a.n + ')'); else set('p', { p: a.it.p.id }, a.it.p, 'isDisabled', true); });
           codeActs.forEach(a => set('v', { p: a.it.p.id, v: a.it.v.id }, a.it.v, 'barcode', ''));
           const n = commit(); window.showToast?.(`แก้แล้ว ${n} จุด`); dupsScreen();
+        };
+      });
+  }
+
+
+  // ---------------- SKU ของขนาดซ้ำกัน ----------------
+  function vskuScreen() {
+    const gs = scanDupVsku();
+    if (!gs.length) return screen('🏷️ SKU ของขนาดซ้ำกัน', '<div class="hf-note ok">✅ ไม่พบ SKU ซ้ำ</div><div class="hf-bar">' + backBtn + '</div>');
+    const shown = gs.slice(0, 80);
+    screen('🏷️ SKU ของขนาดซ้ำกัน (' + gs.length + ' กลุ่ม)',
+      `<div class="hf-note"><b>ปัญหา:</b> หลายขนาด/สินค้าใช้ SKU เดียวกัน เวลานำเข้าไฟล์หรือซิงก์ ข้อมูลอาจเขียนทับกัน หรือถูกมองเป็นสินค้าเดียวกัน<br><b>วิธีแก้:</b> เลือกตัวที่ "เป็นเจ้าของ SKU นี้" ส่วนตัวอื่นเลือกได้ว่าจะตั้ง SKU ใหม่ (ต่อท้าย -2, -3) หรือล้าง SKU ให้ว่าง<br><b>ข้อสังเกต:</b> ถ้าชื่อสินค้ากับชื่อขนาดไม่สัมพันธ์กัน (เช่น ชื่อ 50ซม. แต่ขนาดเขียน 70ซม.) น่าจะเป็นข้อมูลที่นำเข้าผิด ควรแก้ชื่อสินค้าที่หน้าสินค้าด้วย</div>
+       ${shown.map((g, gi) => `<div class="hf-group"><div class="sub">SKU <b>${esc(g.sku)}</b></div>${g.items.map((it, ii) => `<label class="hf-row"><input type="radio" name="hv${gi}" value="${ii}" ${ii === 0 ? 'checked' : ''}><div class="grow">${esc(it.p.name)} <span class="sub">ขนาด:</span> ${esc(it.v.sizeName || '-')}<div class="sub">สต็อก ${it.stock} • ราคา ฿${fmt(it.price)}</div></div></label>`).join('')}
+         <div class="hf-bar"><span>กับตัวอื่น:</span><select class="hf-sel" data-vg="${gi}"><option value="new">ตั้ง SKU ใหม่ (ต่อท้าย -2)</option><option value="clear">ล้าง SKU ให้ว่าง</option><option value="skip">ข้ามไว้ก่อน</option></select></div></div>`).join('')}
+       <div class="hf-bar">${backBtn}<button class="hf-btn pri" id="hf-save">ใช้วิธีที่เลือก</button></div>`,
+      (b) => {
+        b.querySelector('#hf-save').onclick = () => {
+          const taken = new Set(); prods().forEach(p => { if (p.code) taken.add(String(p.code).trim().toLowerCase()); (p.variants || []).forEach(v => { if (v.sku) taken.add(String(v.sku).trim().toLowerCase()); }); });
+          const acts = [];
+          shown.forEach((g, gi) => {
+            const mode = b.querySelector(`[data-vg="${gi}"]`).value; if (mode === 'skip') return;
+            const keep = +b.querySelector(`input[name="hv${gi}"]:checked`).value;
+            g.items.forEach((it, ii) => {
+              if (ii === keep) return;
+              let val = '';
+              if (mode === 'new') { let n = 2; val = g.sku + '-' + n; while (taken.has(val.toLowerCase())) val = g.sku + '-' + (++n); taken.add(val.toLowerCase()); }
+              acts.push({ it, val, old: g.sku });
+            });
+          });
+          if (!acts.length) return window.showAlert?.('ยังไม่ได้เลือกวิธีแก้', 'เปลี่ยน "ข้ามไว้ก่อน" ของกลุ่มที่ต้องการแก้', true);
+          if (!confirm(`แก้ SKU ${acts.length} รายการ?\n\n` + summary(acts.map(a => `• ${a.it.label}: ${a.old} → ${a.val || '(ว่าง)'}`), acts.length) + '\n\n(ย้อนกลับได้จากเมนูตัวช่วย)')) return;
+          begin('แก้ SKU ขนาดซ้ำ'); acts.forEach(a => set('v', { p: a.it.p.id, v: a.it.v.id }, a.it.v, 'sku', a.val));
+          const n = commit(); window.showToast?.(`แก้แล้ว ${n} รายการ`); vskuScreen();
         };
       });
   }
@@ -354,7 +411,7 @@
       });
   }
 
-  const SCREENS = { menu, zero: zeroScreen, below: belowScreen, dups: dupsScreen, stock: stockScreen, orphan: orphanScreen };
+  const SCREENS = { menu, zero: zeroScreen, below: belowScreen, dups: dupsScreen, vsku: vskuScreen, stock: stockScreen, orphan: orphanScreen };
   window.openHealthFixer = function (name) {
     if (!window.canDo?.('ALL')) return window.showAlert?.('ไม่มีสิทธิ์', 'เฉพาะเจ้าของร้านเท่านั้นที่แก้ข้อมูลจากตัวช่วยนี้ได้', true);
     (SCREENS[name] || menu)();
@@ -371,7 +428,7 @@
       try {
         const el = document.getElementById('health-check-results');
         if (el && !el.querySelector('#hf-launch')) {
-          const d = scanDups(), n = scanZero().length + scanBelow().length + d.names.length + d.codes.length;
+          const d = scanDups(), n = scanZero().length + scanBelow().length + d.names.length + d.codes.length + scanDupVsku().length;
           el.insertAdjacentHTML('afterbegin', `<div class="hf-launch" id="hf-launch"><span>🛠️ ตัวช่วยแก้ปัญหา${n ? ` — พบที่แก้ได้ ${n} จุด` : ''}<br><span style="font-weight:400;color:#64748b">เลือกวิธีแก้เอง พร้อมตัวอย่างก่อนบันทึกและย้อนกลับได้</span></span><button class="hf-btn pri" onclick="window.openHealthFixer()">เปิดตัวช่วย</button></div>`);
         }
       } catch (e) { console.warn('health fixer launcher', e); }
@@ -405,5 +462,5 @@
   setTimeout(() => dailyCheck(false), 60000);
   const origOpenShift = window.confirmOpenShift;
   if (typeof origOpenShift === 'function') window.confirmOpenShift = function () { const r = origOpenShift.apply(this, arguments); setTimeout(() => dailyCheck(false), 2500); return r; };
-  window._hf = { scanZero, scanBelow, scanDups, begin, set, commit, undoLast, suggest, criticalScan, dailyCheck };   // สำหรับทดสอบ
+  window._hf = { scanDupVsku, scanZero, scanBelow, scanDups, begin, set, commit, undoLast, suggest, criticalScan, dailyCheck };   // สำหรับทดสอบ
 })();
